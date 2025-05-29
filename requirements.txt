@@ -1,0 +1,13 @@
+facenet-pytorch
+transformers
+jax
+jaxlib
+torch
+torchvision
+numpy
+pandas
+scipy
+matplotlib
+scikit-image
+scikit-learn
+seaborn
