@@ -8,4 +8,4 @@ A research-driven machine learning project for recognizing human emotions using 
 The emotion recognition dataset is large (9.25GB) and stored externally.
 
 You can download it here:  
-[Emotions dataset - Google Drive]([https://drive.google.com/your-shared-link](https://drive.google.com/drive/folders/11euByOm9QnQgdzX6C3e-TukrJBf4qAIS))
+[Emotions dataset - Google Drive] (https://drive.google.com/drive/folders/11euByOm9QnQgdzX6C3e-TukrJBf4qAIS)
