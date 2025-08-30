@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from transformers import ViTForImageClassification, AutoModelForImageClassification, ViTConfig
 
+# Configuration for Student model base on Teacher model
 class VisionTransformer(nn.Module):
     def __init__(self, config):
         super().__init__()

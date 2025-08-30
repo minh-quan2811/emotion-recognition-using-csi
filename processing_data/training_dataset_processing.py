@@ -2,16 +2,19 @@ import os
 import pandas as pd
 import numpy as np
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, Dataset, random_split
 import cv2
 from PIL import Image
 import torchvision.transforms as transforms
 from scipy.signal import spectrogram
 from facenet_pytorch import MTCNN
 
+from transformers import AutoFeatureExtractor
+
 # Global label map for emotions
 label_map = {'Happy': 0, 'Sad': 1, 'Neutral': 2, 'Angry': 3}
 
+# Helper functions
 def normalize_spectrogram(spectrograms):
     """Normalize spectrograms over height and width."""
     means = spectrograms.mean(dim=(-2, -1), keepdim=True)  # Mean over H, W
@@ -26,6 +29,7 @@ def process_csi_data(csi_segments):
     A = np.transpose(A, (0, 2, 1))
     return A
 
+# A is short for amplitude
 def process_A_to_spectrograms(A):
     """Convert amplitude data to spectrograms."""
     num_segments, num_features = A.shape[0], A.shape[1]
@@ -45,6 +49,7 @@ def process_A_to_spectrograms(A):
 
     return torch.FloatTensor(spectrograms)
 
+# Prepare Video and CSI data into segments for training
 class VideoCSIDataset(Dataset):
     def __init__(self, root_dir, feature_extractor, transform=None, segment_length=None, step_size=None, fs=10000):
         self.root_dir = root_dir
@@ -111,7 +116,6 @@ class VideoCSIDataset(Dataset):
     def get_video_segments(self, video_path, num_segments):
         cap = cv2.VideoCapture(video_path)
         fps = int(cap.get(cv2.CAP_PROP_FPS))  # Video frame rate
-        segment_length_in_seconds = self.segment_length / self.fs  # CSI segment length in seconds
         step_size_in_seconds = self.step_size / self.fs  # Step size in seconds
 
         video_segments = []
@@ -156,3 +160,59 @@ def custom_collate_fn(batch):
     video_padded = torch.cat(video_segments, dim=0) if video_segments else None
 
     return video_padded, spectrograms, labels
+
+def save_dataset_splits(train_dataset: Dataset, val_dataset: Dataset, test_dataset: Dataset, save_folder: str):
+    """
+    Saves the train, validation, and test datasets to a specified folder.
+    """
+    # Create the folder if it doesn't exist
+    os.makedirs(save_folder, exist_ok=True)
+    print(f"Ensured directory '{save_folder}' exists.")
+
+    # Define file paths for each dataset
+    train_path = os.path.join(save_folder, "train_dataset.pt")
+    val_path = os.path.join(save_folder, "val_dataset.pt")
+    test_path = os.path.join(save_folder, "test_dataset.pt")
+
+    # Save each dataset
+    try:
+        torch.save(train_dataset, train_path)
+        print(f"Train dataset saved successfully to: {train_path}")
+        torch.save(val_dataset, val_path)
+        print(f"Validation dataset saved successfully to: {val_path}")
+        torch.save(test_dataset, test_path)
+        print(f"Test dataset saved successfully to: {test_path}")
+    except Exception as e:
+        print(f"An error occurred while saving datasets: {e}")
+        if os.path.exists(train_path): os.remove(train_path)
+        if os.path.exists(val_path): os.remove(val_path)
+        if os.path.exists(test_path): os.remove(test_path)
+        raise 
+
+if __name__ == "__main__":
+    # Configuration for Teacher model
+    model_name = "dima806/facial_emotions_image_detection"
+    feature_extractor = AutoFeatureExtractor.from_pretrained(model_name)
+
+    # Dataset parameters
+    segment_length = 600
+    step_size = 400
+
+    # Dataset Directory
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    repo_root = os.path.abspath(os.path.join(base_dir, ".."))
+
+    root_dir = os.path.join(repo_root, "Emotions dataset")
+
+    # Dataset and DataLoader
+    dataset = VideoCSIDataset(root_dir, feature_extractor, segment_length=segment_length, step_size=step_size)
+    total_size = len(dataset)
+    train_ratio, val_ratio, test_ratio = 0.8, 0.1, 0.1
+    train_size = int(train_ratio * total_size)
+    val_size = int(val_ratio * total_size)
+    test_size = total_size - train_size - val_size
+    train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
+
+    # Save dataset after processing
+    destination_folder = "my_video_csi_dataset"
+    save_dataset_splits(train_dataset, val_dataset, test_dataset, destination_folder)

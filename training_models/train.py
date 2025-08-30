@@ -1,84 +1,13 @@
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data import DataLoader, random_split
 from torch.cuda.amp import autocast
-from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
-import matplotlib.pyplot as plt
-import seaborn as sns
-from model import VisionTransformer, initialize_models
-from data_processing import VideoCSIDataset, custom_collate_fn
-from transformers import AutoFeatureExtractor
+from torch.utils.data import DataLoader
 
-def compute_metrics(predictions, labels):
-    # Convert predictions to class indices
-    _, pred_classes = torch.max(predictions, dim=1)
-    _, true_classes = torch.max(labels, dim=1)
-
-    # Precision, Recall, F1-Score (use average='weighted' for multi-class)
-    precision = precision_score(true_classes.cpu(), pred_classes.cpu(), average='weighted', zero_division=0)
-    recall = recall_score(true_classes.cpu(), pred_classes.cpu(), average='weighted', zero_division=0)
-    f1 = f1_score(true_classes.cpu(), pred_classes.cpu(), average='weighted', zero_division=0)
-
-    return precision, recall, f1
-
-def plot_confusion_matrix(predictions, labels, class_names):
-    # Convert predictions to class indices
-    _, pred_classes = torch.max(predictions, dim=1)
-    _, true_classes = torch.max(labels, dim=1)
-
-    cm = confusion_matrix(true_classes.cpu(), pred_classes.cpu())
-
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names)
-    plt.title('Confusion Matrix')
-    plt.xlabel('Predicted')
-    plt.ylabel('True')
-    plt.show()
-
-def evaluate_student_model(model, test_dataloader, class_names):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.eval()
-    total_precision = 0
-    total_recall = 0
-    total_f1 = 0
-    all_predictions = []
-    all_labels = []
-
-    with torch.no_grad():
-        for batch_idx, (video_frames, csi_data, one_hot_labels) in enumerate(test_dataloader):
-            csi_data = csi_data.to(device)
-            one_hot_labels = one_hot_labels.to(device)
-
-            logits, _ = model(csi_data)
-
-            # Compute precision, recall, f1
-            precision, recall, f1 = compute_metrics(logits, one_hot_labels)
-            total_precision += precision
-            total_recall += recall
-            total_f1 += f1
-
-            # Collect all predictions and labels for confusion matrix
-            all_predictions.append(logits)
-            all_labels.append(one_hot_labels)
-
-    avg_precision = total_precision / (batch_idx + 1)
-    avg_recall = total_recall / (batch_idx + 1)
-    avg_f1 = total_f1 / (batch_idx + 1)
-
-    print(f"Average Precision: {avg_precision:.4f}")
-    print(f"Average Recall: {avg_recall:.4f}")
-    print(f"Average F1-Score: {avg_f1:.4f}")
-
-    # Concatenate all predictions and labels
-    all_predictions = torch.cat(all_predictions, dim=0)
-    all_labels = torch.cat(all_labels, dim=0)
-
-    # Confusion matrix
-    plot_confusion_matrix(all_predictions, all_labels, class_names)
-
-    return avg_precision, avg_recall, avg_f1
+from model.models import initialize_models
+from processing_data.training_dataset_processing import custom_collate_fn
 
 def train_model(model, teacher_model, train_dataloader, val_dataloader, epochs=20, model_path='/content/zmodel'):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -189,32 +118,18 @@ def train_model(model, teacher_model, train_dataloader, val_dataloader, epochs=2
     return train_losses, val_losses
 
 if __name__ == "__main__":
-    # Configuration
-    model_name = "dima806/facial_emotions_image_detection"
-    feature_extractor = AutoFeatureExtractor.from_pretrained(model_name)
-    segment_length = 600
-    step_size = 400
-    root_dir = "/content/drive/MyDrive/Quan Emotions"
-    class_names = ['Happy', 'Sad', 'Neutral', 'Angry']
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    repo_root = os.path.abspath(os.path.join(base_dir, ".."))
 
-    # Dataset and DataLoader
-    dataset = VideoCSIDataset(root_dir, feature_extractor, segment_length=segment_length, step_size=step_size)
-    total_size = len(dataset)
-    train_ratio, val_ratio, test_ratio = 0.8, 0.1, 0.1
-    train_size = int(train_ratio * total_size)
-    val_size = int(val_ratio * total_size)
-    test_size = total_size - train_size - val_size
-    train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
-    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True, collate_fn=custom_collate_fn)
-    val_dataloader = DataLoader(val_dataset, batch_size=32, collate_fn=custom_collate_fn)
+    loaded_train_dataset = torch.load(os.path.join(repo_root, "processing_data", "my_video_csi_dataset", "train_dataset.pt"))
+    loaded_val_dataset = torch.load(os.path.join(repo_root, "processing_data", "my_video_csi_dataset", "val_dataset.pt"))
+
+    train_dataloader = DataLoader(loaded_train_dataset, batch_size=32, shuffle=True, collate_fn=custom_collate_fn)
+    val_dataloader = DataLoader(loaded_val_dataset, batch_size=32, collate_fn=custom_collate_fn)
 
     # Initialize models
     teacher_model, student_model = initialize_models()
 
     # Train
-    train_losses, val_losses = train_model(student_model, teacher_model, train_dataloader, val_dataloader, epochs=20)
-
-    # Evaluate
-    student_model.eval()
-    avg_precision, avg_recall, avg_f1 = evaluate_student_model(student_model, val_dataloader, class_names)
-    print(f"Average Precision: {avg_precision}, Recall: {avg_recall}, F1: {avg_f1}")
+    train_losses, val_losses = train_model(student_model, teacher_model, train_dataloader, val_dataloader, 
+                                        epochs=20, model_path=os.path.join(repo_root, "model_weights", "training_weights"))

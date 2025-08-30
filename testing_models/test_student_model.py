@@ -2,11 +2,13 @@ from collections import Counter
 import pandas as pd
 import numpy as np
 import torch
-from model import VisionTransformer
-from data_processing import normalize_spectrogram, segment_csi_data, process_csi_data, process_A_to_spectrograms
 from transformers import ViTConfig
+import os
+from model.models import VisionTransformer
+from processing_data.training_dataset_processing import normalize_spectrogram, segment_csi_data, process_csi_data, process_A_to_spectrograms
 
-def evaluate_single_csi_file(csi_file, model, class_names, segment_length=600, step_size=400):
+# Evaluate student model on a single CSI data file
+def evaluate_student_model(csi_file, model, class_names, segment_length=600, step_size=400):
     # Load CSI data
     csi_data = pd.read_csv(csi_file, usecols=[25], header=None, skiprows=1)
     csi_data = csi_data.dropna(subset=[25])
@@ -36,17 +38,21 @@ def evaluate_single_csi_file(csi_file, model, class_names, segment_length=600, s
     return predicted_labels, emotion_counts
 
 if __name__ == "__main__":
-    # Configuration
-    config = ViTConfig(num_channels=52, num_labels=4, output_hidden_states=True)
-    class_names = ['Happy', 'Sad', 'Neutral', 'Angry']
-    csi_file_path = "/content/drive/MyDrive/neutraltest.csv"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    repo_root = os.path.abspath(os.path.join(base_dir, ".."))
 
-    # Load model
+    csi_file_path = os.path.join(repo_root, "sample_data", "angry7.csv")
+    model_weights_dir = os.path.join(repo_root, "model_weights", "model8")
+
+    # Load student model
+    config = ViTConfig(num_channels=52, num_labels=4, output_hidden_states=True)
     student_model = VisionTransformer(config).cuda()
-    student_model.load_state_dict(torch.load('/content/zmodel_epoch_8'))
+
+    student_model.load_state_dict(torch.load(model_weights_dir))
     student_model.eval()
 
     # Evaluate
-    predicted_labels, emotion_counts = evaluate_single_csi_file(csi_file_path, student_model, class_names)
+    class_names = ['Happy', 'Sad', 'Neutral', 'Angry']
+    predicted_labels, emotion_counts = evaluate_student_model(csi_file_path, student_model, class_names)
     print("Predicted emotions:", predicted_labels)
     print("Emotion counts:", emotion_counts)
