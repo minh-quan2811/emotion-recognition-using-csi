@@ -7,7 +7,7 @@ from transformers import ViTConfig
 from torch.utils.data import DataLoader
 
 from model.models import VisionTransformer
-from processing_data.training_dataset_processing import custom_collate_fn
+from prepare_training_dataset.training_dataset_processing import custom_collate_fn
 
 def compute_metrics(predictions, labels):
     # Convert predictions to class indices

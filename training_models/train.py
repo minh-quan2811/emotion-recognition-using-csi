@@ -7,7 +7,7 @@ from torch.cuda.amp import autocast
 from torch.utils.data import DataLoader
 
 from model.models import initialize_models
-from processing_data.training_dataset_processing import custom_collate_fn
+from prepare_training_dataset.training_dataset_processing import custom_collate_fn
 
 def train_model(model, teacher_model, train_dataloader, val_dataloader, epochs=20, model_path='/content/zmodel'):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -5,7 +5,7 @@ import torch
 from transformers import ViTConfig
 import os
 from model.models import VisionTransformer
-from processing_data.training_dataset_processing import normalize_spectrogram, segment_csi_data, process_csi_data, process_A_to_spectrograms
+from prepare_training_dataset.training_dataset_processing import normalize_spectrogram, segment_csi_data, process_csi_data, process_A_to_spectrograms
 
 # Evaluate student model on a single CSI data file
 def evaluate_student_model(csi_file, model, class_names, segment_length=600, step_size=400):
