@@ -37,6 +37,7 @@ This project uses knowledge distillation to transfer emotion recognition capabil
 - **scikit-learn** - Evaluation metrics
 - **Pandas & NumPy** - Data manipulation
 - **Matplotlib & Seaborn** - Visualization
+- **Click** - command-line interfaces
 
 ### Models
 - **Teacher**: `dima806/facial_emotions_image_detection` (pre-trained ViT)
@@ -70,32 +71,63 @@ You can download it here:
 
 ### 1. Install Dependencies
 ```bash
-pip install requirements.txt
+pip install -r requirements.txt
+pip install click
 ```
 
 ### 2. Prepare Dataset
+Process raw emotion data and create train/val/test splits:
 ```bash
-cd prepare_training_dataset
-python training_dataset_processing.py
+python cli.py prepare --data-dir "./Emotions dataset" --output-dir ./processing_data/my_video_csi_dataset
 ```
+
+**Options:**
+- `--data-dir`: Path to raw emotions dataset (required)
+- `--output-dir`: Output directory for processed datasets (default: `./my_video_csi_dataset`)
+- `--segment-length`: CSI segment length (default: 600)
+- `--step-size`: Step size for segmentation (default: 400)
+- `--train-split`: Training set ratio (default: 0.8)
+- `--val-split`: Validation set ratio (default: 0.1)
 
 ### 3. Train Model
+Train the student model with knowledge distillation:
 ```bash
-cd training_models
-python train.py
+python cli.py train --dataset-dir ./processing_data/my_video_csi_dataset --output-dir ./model_weights --epochs 20
 ```
 
-### 4. Evaluate
+**Options:**
+- `--dataset-dir`: Directory containing prepared datasets (required)
+- `--output-dir`: Output directory for model checkpoints (default: `./model_weights`)
+- `--epochs`: Number of training epochs (default: 20)
+- `--batch-size`: Batch size for training (default: 32)
+- `--lr`: Learning rate (default: 0.001)
+- `--milestones`: LR scheduler milestones (default: 10, 80)
+- `--gamma`: Learning rate decay factor (default: 0.1)
+- `--resume`: Path to checkpoint to resume training (optional)
+
+### 4. Evaluate Model
+Evaluate model performance on test/validation datasets:
 ```bash
-cd testing_models
-python student_model_eval_metrics.py
+python cli.py test --model-path ./model_weights/model_epoch_15 --dataset-dir ./processing_data/my_video_csi_dataset
 ```
 
-### 5. Test Single File
+**Options:**
+- `--model-path`: Path to trained model weights (required)
+- `--dataset-dir`: Directory containing prepared datasets (required)
+- `--dataset-type`: Dataset to evaluate on: `train`, `val`, or `test` (default: `test`)
+- `--batch-size`: Batch size for evaluation (default: 32)
+
+### 5. Predict on New Data
+Predict emotion from a single CSI file:
 ```bash
-cd testing_models
-python test_student_model.py
+python cli.py predict --model-path ./model_weights/model_epoch_15 --csi-file ./sample_data/angry7.csv
 ```
+
+**Options:**
+- `--model-path`: Path to trained model weights (required)
+- `--csi-file`: Path to CSI CSV file (required)
+- `--segment-length`: CSI segment length (default: 600)
+- `--step-size`: Step size for segmentation (default: 400)
 
 ## Key Features
 

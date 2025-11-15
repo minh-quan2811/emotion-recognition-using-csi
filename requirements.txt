@@ -11,3 +11,4 @@ matplotlib
 scikit-image
 scikit-learn
 seaborn
+click
