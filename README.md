@@ -37,7 +37,7 @@ This project uses knowledge distillation to transfer emotion recognition capabil
 - **scikit-learn** - Evaluation metrics
 - **Pandas & NumPy** - Data manipulation
 - **Matplotlib & Seaborn** - Visualization
-- **Click** - command-line interfaces
+- **argparse** - command-line interface (used in `main.py`)
 
 ### Models
 - **Teacher**: `dima806/facial_emotions_image_detection` (pre-trained ViT)
@@ -72,13 +72,12 @@ You can download it here:
 ### 1. Install Dependencies
 ```bash
 pip install -r requirements.txt
-pip install click
 ```
 
 ### 2. Prepare Dataset
 Process raw emotion data and create train/val/test splits:
 ```bash
-python cli.py prepare --data-dir "./Emotions dataset" --output-dir ./processing_data/my_video_csi_dataset
+python main.py prepare --data-dir "./Emotions dataset" --output-dir ./processing_data/my_video_csi_dataset
 ```
 
 **Options:**
@@ -92,7 +91,7 @@ python cli.py prepare --data-dir "./Emotions dataset" --output-dir ./processing_
 ### 3. Train Model
 Train the student model with knowledge distillation:
 ```bash
-python cli.py train --dataset-dir ./processing_data/my_video_csi_dataset --output-dir ./model_weights --epochs 20
+python main.py train --dataset-dir ./processing_data/my_video_csi_dataset --output-dir ./model_weights --epochs 20
 ```
 
 **Options:**
@@ -108,7 +107,7 @@ python cli.py train --dataset-dir ./processing_data/my_video_csi_dataset --outpu
 ### 4. Evaluate Model
 Evaluate model performance on test/validation datasets:
 ```bash
-python cli.py test --model-path ./model_weights/model_epoch_15 --dataset-dir ./processing_data/my_video_csi_dataset
+python main.py test --model-path ./model_weights/model_epoch_15 --dataset-dir ./processing_data/my_video_csi_dataset
 ```
 
 **Options:**
@@ -120,7 +119,7 @@ python cli.py test --model-path ./model_weights/model_epoch_15 --dataset-dir ./p
 ### 5. Predict on New Data
 Predict emotion from a single CSI file:
 ```bash
-python cli.py predict --model-path ./model_weights/model_epoch_15 --csi-file ./sample_data/angry7.csv
+python main.py predict --model-path ./model_weights/model_epoch_15 --csi-file ./sample_data/angry7.csv
 ```
 
 **Options:**
