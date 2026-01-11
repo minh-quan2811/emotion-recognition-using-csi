@@ -8,23 +8,9 @@ This project uses knowledge distillation to transfer emotion recognition capabil
 - **Student Model**: Vision Transformer adapted for CSI spectrograms
 - **Emotions**: Happy, Sad, Neutral, Angry
 
-## Project Structure
+## Demo
 
-```
-.
-├── model/
-│   └── models.py                           # Model architecture
-├── prepare_training_dataset/
-│   └── training_dataset_processing.py      # Dataset preparation
-├── training_models/
-│   └── train.py                            # Training script
-├── testing_models/
-│   ├── student_model_eval_metrics.py       # Model evaluation
-│   └── test_student_model.py               # Single file inference
-├── model_weights/                          # Saved checkpoints
-├── processing_data/                        # Processed datasets
-└── Emotions dataset/                       # Raw data
-```
+[![Watch the demo](assets/WeFine_image.jpg)](https://youtu.be/IGxeG4zzgJk)
 
 ## Tech Stack
 
